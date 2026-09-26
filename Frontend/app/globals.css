@@ -1,0 +1,92 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f7f9f9;
+  --foreground: #0f172a;
+  
+  /* Primary Clinical Teal Palette */
+  --teal-deep: #072227;
+  --teal-sidebar: #0a2c32;
+  --teal-sidebar-hover: #103e46;
+  --teal-sidebar-active: #144f59;
+  --teal-primary: #0f766e;
+  --teal-accent: #0d9488;
+  --teal-glow: #14b8a6;
+  
+  /* Card and Border System */
+  --card-bg: #ffffff;
+  --card-border: #e2e8f0;
+  --card-subtle: #f8fafc;
+  
+  /* Retinal Severity Palettes */
+  --dr-0: #10b981; /* No DR - Emerald */
+  --dr-1: #0284c7; /* Mild - Sky */
+  --dr-2: #d97706; /* Moderate - Amber */
+  --dr-3: #ea580c; /* Severe - Orange */
+  --dr-4: #e11d48; /* Proliferative - Rose */
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom clinical scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Grad-CAM Heatmap Radial simulation */
+.gradcam-layer {
+  background: radial-gradient(circle at 62% 42%, rgba(239, 68, 68, 0.75) 0%, rgba(234, 88, 12, 0.6) 20%, rgba(234, 179, 8, 0.45) 45%, rgba(59, 130, 246, 0.2) 65%, transparent 85%);
+  mix-blend-mode: color-dodge;
+  pointer-events: none;
+}
+
+/* Medical Grid Overlay */
+.retinal-grid-overlay {
+  background-size: 50% 50%;
+  background-image: 
+    linear-gradient(to right, rgba(20, 184, 166, 0.35) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(20, 184, 166, 0.35) 1px, transparent 1px);
+}
+
+@keyframes pulse-slow {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.8; transform: scale(1.02); }
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Print Styles for Clinical Reports */
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+  .page-break {
+    page-break-before: always;
+  }
+}
