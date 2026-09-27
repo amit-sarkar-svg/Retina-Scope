@@ -15,6 +15,7 @@ router.use(requireAuth);
 router.post('/', retinalScanUpload.single('image'), asyncHandler(screeningController.create));
 router.get('/', asyncHandler(screeningController.getAll));
 router.get('/:id', asyncHandler(screeningController.getById));
+router.post('/:id/quality-check', asyncHandler(screeningController.qualityCheck));
 router.post('/:id/analyze', asyncHandler(screeningController.analyze));
 router.get('/:id/result', asyncHandler(resultController.getResult));
 router.post(

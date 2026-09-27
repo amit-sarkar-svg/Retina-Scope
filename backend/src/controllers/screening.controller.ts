@@ -53,6 +53,26 @@ export class ScreeningController {
     return ApiResponse.success(res, screening, 'Screening retrieved successfully', HTTP_STATUS.OK);
   };
 
+  public qualityCheck = async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const forceScore = req.body?.forceScore !== undefined ? Number(req.body.forceScore) : undefined;
+    const testScenario = req.body?.testScenario;
+
+    const qualityResult = await screeningService.checkQuality(id, {
+      forceScore,
+      testScenario,
+    });
+
+    return ApiResponse.success(
+      res,
+      qualityResult,
+      qualityResult.canProceed
+        ? 'Image quality assessment passed successfully'
+        : 'Image quality assessment failed - image does not meet minimum requirements',
+      HTTP_STATUS.OK
+    );
+  };
+
   public analyze = async (req: Request, res: Response) => {
     const { id } = req.params;
     const updatedScreening = await screeningService.analyzeScreening(id);

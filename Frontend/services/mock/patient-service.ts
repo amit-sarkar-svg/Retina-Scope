@@ -1,4 +1,4 @@
-import { Patient } from "@/types/patient";
+import { Patient, CreatePatientInput, Gender } from "@/types/patient";
 import { MOCK_PATIENTS } from "@/lib/mock/patients";
 import { MOCK_SCREENINGS } from "@/lib/mock/screenings";
 import { Screening } from "@/types/screening";
@@ -14,7 +14,7 @@ export const patientService = {
       (p) =>
         p.fullName.toLowerCase().includes(q) ||
         p.mrn.toLowerCase().includes(q) ||
-        p.email.toLowerCase().includes(q) ||
+        p.email?.toLowerCase().includes(q) ||
         p.phone.includes(q)
     );
   },
@@ -25,14 +25,43 @@ export const patientService = {
     return patient ? { ...patient } : null;
   },
 
-  async createPatient(payload: Omit<Patient, "id" | "totalScreenings" | "highestSeverityRecorded">): Promise<Patient> {
+  async createPatient(payload: CreatePatientInput): Promise<Patient> {
     await new Promise((resolve) => setTimeout(resolve, 120));
+
+    const normalizedGender: Gender =
+      payload.gender.toLowerCase() === "female"
+        ? "female"
+        : payload.gender.toLowerCase() === "male"
+        ? "male"
+        : "other";
+
+    const birthYear = new Date().getFullYear() - (payload.age || 45);
+
     const newPatient: Patient = {
-      ...payload,
       id: `pat-${Date.now()}`,
+      mrn: payload.patientCode.trim(),
+      fullName: payload.name.trim(),
+      age: Number(payload.age),
+      gender: normalizedGender,
+      dob: `${birthYear}-01-01`,
+      phone: payload.phone.trim(),
+      email: `${payload.name.toLowerCase().replace(/[^a-z0-9]/g, "") || "patient"}@retinascope.health`,
+      diabetesType: "Type 2",
+      yearsWithDiabetes: 5,
+      latestHbA1c: 7.2,
+      hba1cDate: new Date().toISOString().split("T")[0],
+      hypertension: false,
+      bloodPressure: "120/80 mmHg",
+      smokingStatus: "never",
+      visualAcuityOD: "20/20",
+      visualAcuityOS: "20/20",
+      primaryCarePhysician: "Dr. General Intake, MD",
+      assignedClinic: "Westside Eye Screening Pavilion",
       totalScreenings: 0,
       highestSeverityRecorded: 0,
+      notes: "Newly registered patient.",
     };
+
     patientsStore = [newPatient, ...patientsStore];
     return newPatient;
   },

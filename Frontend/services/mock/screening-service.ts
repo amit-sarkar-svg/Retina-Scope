@@ -4,6 +4,7 @@ import { AIAnalysisResult, DRGrade } from "@/types/ai-result";
 import { MOCK_SCREENINGS } from "@/lib/mock/screenings";
 import { MOCK_PATIENTS } from "@/lib/mock/patients";
 import { generateFundusSvgDataUrl } from "@/lib/mock/fundus-generator";
+import { patientService } from "@/services/mock/patient-service";
 
 // Local in-memory store so mutations in the session persist during runtime
 let screeningsStore: Screening[] = [...MOCK_SCREENINGS];
@@ -83,6 +84,65 @@ export const screeningService = {
     return found ? { ...found } : null;
   },
 
+  async checkQuality(payload: {
+    screeningId?: string;
+    imagePreviewUrl?: string;
+    forceScore?: number;
+    scenario?: "DEFAULT_94" | "PASS_80" | "FAIL_79" | "FAIL_67" | null;
+  }): Promise<{
+    screeningId: string;
+    qualityScore: number;
+    qualityPercentage: number;
+    status: "PASSED" | "FAILED";
+    canProceed: boolean;
+    reason: string;
+    checkedAt: string;
+    metadata: {
+      sharpness: number;
+      illumination: number;
+      fieldOfViewClarity: number;
+      artifactPresence: boolean;
+    };
+  }> {
+    await new Promise((resolve) => setTimeout(resolve, 350));
+
+    let score = 0.94;
+    if (payload.forceScore !== undefined) {
+      score = payload.forceScore;
+    } else if (payload.scenario === "PASS_80") {
+      score = 0.8;
+    } else if (payload.scenario === "FAIL_79") {
+      score = 0.79;
+    } else if (payload.scenario === "FAIL_67") {
+      score = 0.67;
+    }
+
+    const percentage = Math.round(score * 100);
+    const isPassed = score >= 0.8;
+    const status = isPassed ? "PASSED" : "FAILED";
+    const checkedAt = new Date().toISOString();
+
+    const reason = isPassed
+      ? "The retinal image meets the minimum quality requirement and can proceed to AI analysis."
+      : "This retinal image does not meet the minimum quality requirement for AI analysis (minimum 80% required). Please upload a clearer retinal scan.";
+
+    return {
+      screeningId: payload.screeningId || `scr-${Date.now()}`,
+      qualityScore: score,
+      qualityPercentage: percentage,
+      status,
+      canProceed: isPassed,
+      reason,
+      checkedAt,
+      metadata: {
+        sharpness: Math.round(score * 98) / 100,
+        illumination: Math.round(score * 95) / 100,
+        fieldOfViewClarity: Math.round(score * 97) / 100,
+        artifactPresence: !isPassed,
+      },
+    };
+  },
+
   async createScreening(payload: {
     patientId: string;
     primaryEye: "OD" | "OS";
@@ -91,11 +151,55 @@ export const screeningService = {
     operatorName: string;
     clinicLocation: string;
     notes?: string;
+    qualityScore?: number;
+    qualityStatus?: "PENDING" | "PASSED" | "FAILED";
   }): Promise<Screening> {
     await new Promise((resolve) => setTimeout(resolve, 150));
-    const patient = MOCK_PATIENTS.find((p) => p.id === payload.patientId) || MOCK_PATIENTS[0];
+    const patient = (await patientService.getPatientById(payload.patientId)) || MOCK_PATIENTS.find((p) => p.id === payload.patientId) || MOCK_PATIENTS[0];
     const newId = `scr-${Date.now()}`;
     const accessionNumber = `RS-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+
+    const qualityStatus = payload.qualityStatus || "PASSED";
+    const qualityScore = payload.qualityScore !== undefined ? payload.qualityScore : 0.94;
+
+    // Hard check: If quality has NOT passed, do not generate AI result!
+    if (qualityStatus === "FAILED") {
+      const failedScreening: Screening = {
+        id: newId,
+        accessionNumber,
+        patientId: patient.id,
+        patient,
+        createdAt: new Date().toISOString(),
+        status: "QUALITY_REJECTED",
+        reviewStatus: "Pending Review",
+        qualityStatus: "FAILED",
+        qualityScore,
+        qualityReason: "Image quality below required threshold (80%). Recapture requested.",
+        qualityCheckedAt: new Date().toISOString(),
+        primaryEye: payload.primaryEye,
+        priorityScore: 0,
+        isFlaggedForUrgentReview: false,
+        operatorName: payload.operatorName || "Clinical Screener Staff",
+        clinicLocation: payload.clinicLocation || "Main Eye Screening Pavilion",
+        notes: payload.notes,
+        primaryImage: {
+          imageId: `img-${Date.now()}`,
+          originalFileName: payload.imageFile?.name || `${patient.fullName.toUpperCase().replace(/\s+/g, "_")}_${payload.primaryEye}.jpg`,
+          fileSizeBytes: payload.imageFile?.size || 14200000,
+          resolution: "3840 x 2880 px",
+          capturedAt: new Date().toISOString(),
+          laterality: payload.primaryEye,
+          modality: "Color Fundus Photography (CFP)",
+          fieldOfView: "45-degree Macula-Centered",
+          cameraDevice: "Topcon TRC-NW400 Digital Retinal Camera",
+          imageUrl: payload.imagePreviewUrl || "",
+          thumbnailUrl: payload.imagePreviewUrl || "",
+        },
+        aiResult: undefined, // NO AI RESULT FOR FAILED QUALITY GATE
+      };
+      screeningsStore = [failedScreening, ...screeningsStore];
+      return failedScreening;
+    }
 
     // Default simulated grade based on patient HbA1c or random clinical profile
     const simulatedGrade: DRGrade = patient.latestHbA1c > 9.0 ? 3 : patient.latestHbA1c > 8.0 ? 2 : 1;
@@ -110,6 +214,10 @@ export const screeningService = {
       completedAt: new Date().toISOString(),
       status: "AI Screened",
       reviewStatus: "Pending Review",
+      qualityStatus: "PASSED",
+      qualityScore,
+      qualityReason: "Image meets minimum clinical quality requirement (>=80%).",
+      qualityCheckedAt: new Date().toISOString(),
       primaryEye: payload.primaryEye,
       priorityScore: simulatedGrade >= 3 ? 85 : simulatedGrade >= 2 ? 60 : 30,
       isFlaggedForUrgentReview: simulatedGrade >= 3,

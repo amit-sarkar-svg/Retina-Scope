@@ -35,10 +35,21 @@ export class ResultService {
         patientId: screening.patientId,
         imagePath: screening.imagePath,
         status: screening.status,
+        qualityStatus: screening.qualityStatus,
+        qualityScore: screening.qualityScore,
+        qualityReason: screening.qualityReason,
+        qualityCheckedAt: screening.qualityCheckedAt,
         createdAt: screening.createdAt,
         updatedAt: screening.updatedAt,
       },
       patient: screening.patient,
+      quality: {
+        status: screening.qualityStatus,
+        score: screening.qualityScore,
+        percentage: screening.qualityScore !== null && screening.qualityScore !== undefined ? Math.round(screening.qualityScore * 100) : null,
+        reason: screening.qualityReason,
+        checkedAt: screening.qualityCheckedAt,
+      },
       aiResult: screening.aiResult
         ? {
             id: screening.aiResult.id,

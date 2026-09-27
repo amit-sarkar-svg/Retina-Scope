@@ -1,6 +1,14 @@
 export type Gender = "male" | "female" | "other";
 export type DiabetesType = "Type 1" | "Type 2" | "Gestational" | "Pre-diabetes";
 
+export interface CreatePatientInput {
+  patientCode: string;
+  name: string;
+  age: number;
+  gender: Gender | "Male" | "Female" | "Other";
+  phone: string;
+}
+
 export interface Patient {
   id: string;
   mrn: string; // Medical Record Number

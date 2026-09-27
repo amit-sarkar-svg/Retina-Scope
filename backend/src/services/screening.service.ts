@@ -1,9 +1,11 @@
-import { Prisma, ScreeningStatus } from '@prisma/client';
+import { Prisma, ScreeningStatus, QualityStatus } from '@prisma/client';
 import { prisma } from '../prisma/client';
 import { AppError } from '../middleware/error.middleware';
 import { HTTP_STATUS } from '../config/constants';
 import { ScreeningQuerySchemaInput } from '../schemas/screening.schema';
 import { modelService } from './model/model.service';
+import { qualityService } from './quality/quality.service';
+import { QualityGateOptions } from './quality/quality.adapter';
 import { fileExists, getUploadAbsolutePath } from '../utils/file.utils';
 import { PaginationInfo } from '../utils/api-response';
 
@@ -26,6 +28,7 @@ export class ScreeningService {
         patientId,
         imagePath,
         status: ScreeningStatus.UPLOADED,
+        qualityStatus: QualityStatus.PENDING,
       },
       include: {
         patient: true,
@@ -128,6 +131,10 @@ export class ScreeningService {
     return screening;
   }
 
+  public async checkQuality(id: string, options?: QualityGateOptions) {
+    return qualityService.checkScreeningQuality(id, options);
+  }
+
   public async analyzeScreening(id: string) {
     const screening = await prisma.screening.findUnique({
       where: { id },
@@ -139,6 +146,16 @@ export class ScreeningService {
         `Screening with ID '${id}' not found.`,
         HTTP_STATUS.NOT_FOUND,
         'SCREENING_NOT_FOUND'
+      );
+    }
+
+    // HARD QUALITY GATE ENFORCEMENT:
+    // Retinal scan MUST have passed quality assessment before model inference is permitted.
+    if (screening.qualityStatus !== QualityStatus.PASSED) {
+      throw new AppError(
+        'The retinal image must pass the quality gate before AI analysis.',
+        HTTP_STATUS.BAD_REQUEST,
+        'QUALITY_GATE_REQUIRED'
       );
     }
 

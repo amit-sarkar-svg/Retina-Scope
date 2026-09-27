@@ -1,7 +1,7 @@
 import request from 'supertest';
 import app from '../src/app';
 import { prisma } from '../src/prisma/client';
-import { ScreeningStatus, Gender } from '@prisma/client';
+import { ScreeningStatus, QualityStatus, Gender } from '@prisma/client';
 import { createTestToken } from './helpers';
 
 describe('Screening API (/api/screenings)', () => {
@@ -29,13 +29,17 @@ describe('Screening API (/api/screenings)', () => {
         patientId: 'patient-123',
         imagePath: 'uploads/retinal-scan-123.png',
         status: ScreeningStatus.UPLOADED,
+        qualityStatus: QualityStatus.PENDING,
+        qualityScore: null,
+        qualityReason: null,
+        qualityCheckedAt: null,
         createdAt: new Date(),
         updatedAt: new Date(),
         patient: mockPatient,
       };
 
       jest.spyOn(prisma.patient, 'findUnique').mockResolvedValueOnce(mockPatient);
-      jest.spyOn(prisma.screening, 'create').mockResolvedValueOnce(mockScreening);
+      jest.spyOn(prisma.screening, 'create').mockResolvedValueOnce(mockScreening as never);
 
       // Create a small 1x1 png buffer for multipart upload
       const dummyPng = Buffer.from(

@@ -16,7 +16,7 @@ interface RetinalViewerSettings {
 }
 
 interface UploadWizardState {
-  currentStep: number; // 1: Patient, 2: Upload, 3: AI Analysis, 4: Results
+  currentStep: number; // 1: Patient Selection, 2: Scan Upload, 3: Image Quality Gate, 4: AI Pipeline Inference, 5: Screening Result
   selectedPatientId: string | null;
   eyeLaterality: "OD" | "OS";
   imageFile: File | null;
@@ -24,6 +24,14 @@ interface UploadWizardState {
   operatorName: string;
   clinicLocation: string;
   notes: string;
+  // Quality Gate State
+  qualityStatus: "IDLE" | "CHECKING" | "PASSED" | "FAILED";
+  qualityScore: number | null;
+  qualityPercentage: number | null;
+  qualityReason: string | null;
+  qualityCheckedAt: string | null;
+  simulatedQualityScenario: "DEFAULT_94" | "PASS_80" | "FAIL_79" | "FAIL_67" | null;
+  // AI Inference State
   isProcessing: boolean;
   processingProgress: number;
   processingStageText: string;
@@ -69,6 +77,12 @@ const initialWizardState: UploadWizardState = {
   operatorName: "Rachel Kim, COA",
   clinicLocation: "Westside Eye Center",
   notes: "",
+  qualityStatus: "IDLE",
+  qualityScore: null,
+  qualityPercentage: null,
+  qualityReason: null,
+  qualityCheckedAt: null,
+  simulatedQualityScenario: null,
   isProcessing: false,
   processingProgress: 0,
   processingStageText: "Idle",

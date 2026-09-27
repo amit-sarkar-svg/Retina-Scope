@@ -21,10 +21,19 @@ enum Gender {
 
 enum ScreeningStatus {
   UPLOADED
+  QUALITY_CHECKING
+  QUALITY_PASSED
+  QUALITY_REJECTED
   PROCESSING
   COMPLETED
   REVIEW_PENDING
   REVIEWED
+  FAILED
+}
+
+enum QualityStatus {
+  PENDING
+  PASSED
   FAILED
 }
 
@@ -109,6 +118,10 @@ model Screening {
   patient          Patient           @relation(fields: [patientId], references: [id], onDelete: Cascade)
   imagePath        String
   status           ScreeningStatus   @default(UPLOADED)
+  qualityStatus    QualityStatus?    @default(PENDING)
+  qualityScore     Float?
+  qualityReason    String?
+  qualityCheckedAt DateTime?
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
   aiResult         AIResult?
@@ -117,6 +130,7 @@ model Screening {
 
   @@index([patientId])
   @@index([status])
+  @@index([qualityStatus])
   @@index([createdAt])
   @@map("screenings")
 }
